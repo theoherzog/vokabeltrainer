@@ -69,6 +69,7 @@ h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 25px; background: var(--btn); border: 1px solid var(--btn-b); font-weight: 600; }
 .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
 .btn.block { width: 100%; }
+.ver { color: var(--fg3); font-size: 13px; text-align: center; margin: 28px 0 0; }
 .today { color: var(--fg2); font-size: 15px; margin: 14px 4px 0; }
 
 /* rating bar and tab bar float above content */
@@ -179,6 +180,7 @@ h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
     <div class="h2row"><h2>Nach Thema</h2></div>
     <div class="group" id="sTopics"></div>
   </section>
+  <p class="ver" id="verLine"></p>
 </div>
 
 <div class="rate" id="rateBar"><div>
@@ -199,6 +201,7 @@ h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
 <script>
 (function(){
 var RAW = /*__DATA__*/"";
+var APP_VER = /*__VER__*/"dev";
 var TOPICS = {ALL:'Grundwortschatz',HOM:'Haushalt & Wohnen',FOO:'Essen & Trinken',BOD:'Körper & Gesundheit',NAT:'Natur, Tiere & Wetter',TRV:'Reisen & Verkehr',BIZ:'Arbeit & Business',FIN:'Geld & Finanzen',TEC:'Technik & IT',SCI:'Wissenschaft',POL:'Politik, Recht & Militär',SOC:'Gesellschaft & Kultur',SPO:'Sport & Freizeit',EMO:'Gefühle & Charakter',PPL:'Menschen & Beziehungen',TIM:'Zeit, Raum & Mengen',COM:'Kommunikation & Medien',EDU:'Bildung & Sprache',CLO:'Kleidung & Aussehen'};
 var TCOL = {ALL:'grey',HOM:'yellow',FOO:'orange',BOD:'red',NAT:'green',TRV:'blue',BIZ:'dark',FIN:'yellow',TEC:'blue',SCI:'cyan',POL:'dark',SOC:'purple',SPO:'orange',EMO:'pink',PPL:'purple',TIM:'grey',COM:'cyan',EDU:'blue',CLO:'pink'};
 var W = RAW.split('\n').filter(Boolean).map(function(l){var p=l.split('\t');return {en:p[0],de:p[1],t:TOPICS[p[2]]?p[2]:'ALL',ex:p[3]||''};});
@@ -410,6 +413,7 @@ $('btnMenu').addEventListener('click', function(){ openSheet('Mehr', [
   {label:'Backup sichern',small:(S.lastBackup?'Letztes Backup '+(daysSince(S.lastBackup)===0?'heute':'vor '+daysSince(S.lastBackup)+' Tagen'):'Noch kein Backup')+', als Datei in Dateien oder iCloud',now:true,icon:ico('blue','<svg class="i"><use href="#save"/></svg>'),act:backup},
   {label:'Backup wiederherstellen',small:'Backup-Datei wählen, ersetzt den Stand auf diesem Gerät',icon:ico('green','<svg class="i"><use href="#upload"/></svg>'),act:function(){ $('fileImport').click(); }},
   {label:'Speicher',small:(persisted===true||standalone())?'Geschützt, iOS löscht die Daten nicht automatisch':'Im Browser kann iOS die Daten nach 7 Tagen ohne Nutzung löschen. Lege die App auf den Home-Bildschirm',icon:ico('grey','<svg class="i"><use href="#lock"/></svg>'),act:function(){}},
+  {label:'Version '+APP_VER,small:'Nach Updates zeigt die App kurz "Neue Version geladen"',icon:ico('dark','<svg class="i"><use href="#refresh"/></svg>'),act:function(){ checkUpdate(true); }},
   {label:'Fortschritt zurücksetzen',small:'Löscht alle Bewertungen auf diesem Gerät',danger:true,icon:ico('red','<svg class="i"><use href="#trash"/></svg>'),act:function(){ openSheet('Wirklich zurücksetzen?', [
      {label:'Ja, alles löschen',danger:true,act:function(){ S={s:{},d:{},cfg:Object.assign({},DEF),lastBackup:S.lastBackup}; hist=[]; save(); go('lernen'); toast('Fortschritt zurückgesetzt'); }},
      {label:'Abbrechen',act:function(){}} ]); }}
@@ -441,7 +445,18 @@ function boot(){ if (booted) return; booted=true; buildQueue(); next(); }
 setTimeout(boot, 1500);
 idbOpen(function(){ idbGet(function(x){ if (!booted && x && x.s && (x.u||0) > (S.u||0)) { adopt(x); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} } boot(); if (Object.keys(S.s).length) idbPut(); }); });
 askPersist();
-if ('serviceWorker' in navigator && location.protocol==='https:' && /github\.io$/.test(location.hostname)) { try { navigator.serviceWorker.register('sw.js').catch(function(){}); } catch(e){} }
+$('verLine').textContent='Version '+APP_VER;
+// Updates: sw.js bypasses the HTTP cache, the app checks on every start and when it comes back to the foreground,
+// a new version takes over at once and the page reloads one time
+var swReg=null;
+function checkUpdate(manual){ if (!swReg) { if (manual) toast('Version '+APP_VER); return; } try { swReg.update().then(function(){ if (manual && !swReg.installing && !swReg.waiting) toast('Version '+APP_VER+' ist aktuell'); }); } catch(e){} }
+if ('serviceWorker' in navigator && location.protocol==='https:' && /github\.io$/.test(location.hostname)) { try {
+  var hadCtl=!!navigator.serviceWorker.controller, reloading=false;
+  navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(function(r){ swReg=r; checkUpdate(false); }).catch(function(){});
+  navigator.serviceWorker.addEventListener('controllerchange', function(){ if (!hadCtl || reloading) return; reloading=true; try { sessionStorage.setItem('vt-updated','1'); } catch(e){} location.reload(); });
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState==='visible') checkUpdate(false); });
+} catch(e){} }
+try { if (sessionStorage.getItem('vt-updated')) { sessionStorage.removeItem('vt-updated'); setTimeout(function(){ toast('Neue Version geladen: '+APP_VER); }, 400); } } catch(e){}
 })();
 </script>
 </body>
