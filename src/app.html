@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--PWA-->
+<title>Vokabeltrainer 10.000</title>
+<style>
+:root {
+  --bg: #F2F3F5; --card: #FFFFFF; --fg: #1F2328; --fg2: #59636E; --fg3: #8C959F; --sep: #E1E4E8;
+  --blue: #0969DA; --blue-bg: #DDF4FF; --btn: #F3F4F6; --btn-b: #D8DEE4;
+  --green: #3E9B4F; --red: #CF222E; --purple: #8250DF; --orange: #D4762C; --yellow: #D4A72C; --grey: #8C959F; --dark: #32383F; --cyan: #1B7C83; --pink: #BF3989;
+  --glass: rgba(255,255,255,.82); --shadow: 0 6px 24px rgba(31,35,40,.12), 0 1px 2px rgba(31,35,40,.08);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #000000; --card: #161B22; --fg: #F0F6FC; --fg2: #9198A1; --fg3: #6E7681; --sep: #30363D;
+  --blue: #4493F8; --blue-bg: #0F2A47; --btn: #21262D; --btn-b: #30363D; --glass: rgba(22,27,34,.82);
+  --shadow: 0 6px 24px rgba(0,0,0,.5);
+} }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.35 var(--font); -webkit-text-size-adjust: 100%; font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.wrap { max-width: 640px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px calc(env(safe-area-inset-bottom, 0px) + 190px); }
+[hidden] { display: none !important; }
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; height: 48px; }
+.pill { display: inline-flex; align-items: center; gap: 22px; height: 48px; padding: 0 18px; border-radius: 24px; background: var(--glass); box-shadow: var(--shadow); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.round { width: 48px; justify-content: center; padding: 0; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--dark); color: #fff; display: grid; place-items: center; font: 600 15px var(--font); }
+h1 { font: 700 34px/1.15 var(--font); letter-spacing: -.02em; margin: 18px 0 4px; }
+.sub { color: var(--fg2); margin: 0 0 18px; font-size: 15px; }
+.h2row { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 10px; }
+h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
+.h2more { color: var(--fg3); }
+
+/* grouped list */
+.group { background: var(--card); border-radius: 22px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 0 18px; width: 100%; text-align: left; position: relative; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; border-top: 1px solid var(--sep); }
+.row.noicon + .row.noicon::before { left: 18px; }
+.ico { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; flex: none; font: 700 13px var(--font); }
+.ico svg.i { width: 19px; height: 19px; }
+.row .lbl { flex: 1; min-width: 0; padding: 12px 0; }
+.row .lbl small { display: block; color: var(--fg2); font-size: 14px; margin-top: 1px; }
+.row .val { color: var(--fg2); text-align: right; white-space: nowrap; }
+.row .val.off { color: var(--red); }
+.row .chev { color: var(--fg3); width: 18px; height: 18px; }
+.row:active { background: var(--btn); }
+.row.static:active { background: none; }
+.bar { height: 6px; border-radius: 3px; background: var(--btn-b); overflow: hidden; margin-top: 7px; }
+.bar i { display: block; height: 100%; background: var(--green); border-radius: 3px; }
+
+/* flashcard */
+.card { background: var(--card); border-radius: 22px; min-height: 270px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 28px 20px; gap: 14px; user-select: none; -webkit-user-select: none; cursor: pointer; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.chip { font: 600 13px var(--font); padding: 4px 10px; border-radius: 12px; background: var(--btn); color: var(--fg2); }
+.chip.lv { background: var(--blue-bg); color: var(--blue); }
+.word { font: 700 38px/1.15 var(--font); letter-spacing: -.02em; word-break: break-word; }
+.ans { font-size: 22px; color: var(--fg2); min-height: 30px; }
+.ans.hint { font-size: 15px; color: var(--fg3); }
+.empty { background: var(--card); border-radius: 22px; padding: 26px 22px; text-align: center; }
+.empty p { color: var(--fg2); margin: 8px 0 18px; }
+.empty b { font-size: 20px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 25px; background: var(--btn); border: 1px solid var(--btn-b); font-weight: 600; }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.block { width: 100%; }
+.today { color: var(--fg2); font-size: 15px; margin: 14px 4px 0; }
+
+/* rating bar and tab bar float above content */
+.rate { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 20; display: flex; justify-content: center; padding: 0 20px; pointer-events: none; }
+.rate > div { display: flex; gap: 12px; width: 100%; max-width: 600px; pointer-events: auto; }
+.rate .btn { flex: 1; white-space: nowrap; padding: 0 12px; height: 56px; border-radius: 28px; font-size: 18px; box-shadow: var(--shadow); }
+.rate .btn.no { background: var(--card); border-color: var(--btn-b); }
+.tabs { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 30; display: flex; justify-content: center; padding: 0 20px; }
+.tabs nav { display: flex; width: 100%; max-width: 600px; padding: 6px; border-radius: 38px; background: var(--glass); box-shadow: var(--shadow); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.tabs a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0 7px; border-radius: 32px; color: var(--fg); text-decoration: none; font: 600 12px var(--font); position: relative; }
+.tabs a[aria-current] { background: var(--btn); color: var(--blue); }
+.tabs .badge { position: absolute; top: 4px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font: 700 11px/18px var(--font); text-align: center; }
+
+/* chart */
+.chartbox { background: var(--card); border-radius: 22px; padding: 16px 14px 10px; }
+.chartbox svg { width: 100%; height: auto; display: block; }
+.chartbox text { font: 12px var(--font); fill: var(--fg3); }
+.chartbox line { stroke: var(--sep); }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--fg2); padding: 6px 4px 0; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+
+/* sheets */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.32); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; transform: translateY(105%); transition: transform .25s ease, visibility .25s; visibility: hidden; display: flex; justify-content: center; }
+.sheet.on { transform: none; visibility: visible; }
+.sheet > div { width: 100%; max-width: 640px; background: var(--bg); border-radius: 22px 22px 0 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 18px); max-height: 80vh; overflow: auto; }
+.grab { width: 38px; height: 5px; border-radius: 3px; background: var(--btn-b); margin: 0 auto 12px; }
+.sheet h3 { font: 700 20px var(--font); margin: 4px 4px 14px; }
+.sheet .row .chk { color: var(--blue); }
+.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 14px); transform: translate(-50%, -150%); z-index: 60; background: var(--dark); color: #fff; padding: 12px 18px; border-radius: 22px; font-size: 15px; box-shadow: var(--shadow); transition: transform .25s; max-width: 90vw; }
+.toast.on { transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+  <symbol id="signal" viewBox="0 0 24 24"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/></symbol>
+  <symbol id="tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="swap" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></symbol>
+  <symbol id="shuffle" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-7.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></symbol>
+  <symbol id="undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol>
+  <symbol id="dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+  <symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+</svg>
+
+<div class="wrap">
+  <div class="top">
+    <div class="avatar" aria-hidden="true">TH</div>
+    <div class="pill"><button type="button" id="btnTest" aria-label="Einstufungstest"><svg class="i"><use href="#target"/></svg></button><button type="button" id="btnMenu" aria-label="Mehr"><svg class="i"><use href="#dots"/></svg></button></div>
+  </div>
+  <h1 id="title">Lernen</h1>
+  <p class="sub" id="sub"></p>
+
+  <section id="vCard">
+    <div class="card" id="card" role="button" tabindex="0" aria-label="Lösung zeigen">
+      <div class="chips"><span class="chip lv" id="cLv"></span><span class="chip" id="cTopic"></span><span class="chip" id="cDir"></span></div>
+      <div class="word" id="cWord"></div>
+      <div class="ans hint" id="cAns"></div>
+    </div>
+    <div class="empty" id="emptyBox" hidden><b id="emptyH"></b><p id="emptyP"></p><button class="btn primary" type="button" id="emptyBtn"></button></div>
+    <div id="testBox" hidden>
+      <div class="group" id="tTest"></div>
+      <div class="empty" style="margin-top:14px;text-align:left"><p id="testRec" style="margin-top:0;color:var(--fg)"></p>
+        <button class="btn primary block" type="button" id="btnStartRec"></button>
+        <button class="btn block" type="button" id="btnRetest" style="margin-top:10px"><svg class="i"><use href="#refresh"/></svg>Neuer Test</button></div>
+    </div>
+    <p class="today" id="todayLine"></p>
+
+    <div class="h2row"><h2>Auswahl</h2></div>
+    <div class="group">
+      <button class="row" type="button" data-sheet="band" id="rBand"><span class="ico" style="background:var(--blue)"><svg class="i"><use href="#signal"/></svg></span><span class="lbl">Niveau</span><span class="val" id="vBand"></span><svg class="i chev"><use href="#chev"/></svg></button>
+      <button class="row" type="button" data-sheet="topic" id="rTopic"><span class="ico" style="background:var(--orange)"><svg class="i"><use href="#tag"/></svg></span><span class="lbl">Thema</span><span class="val" id="vTopic"></span><svg class="i chev"><use href="#chev"/></svg></button>
+      <button class="row" type="button" data-sheet="dir"><span class="ico" style="background:var(--purple)"><svg class="i"><use href="#swap"/></svg></span><span class="lbl">Richtung</span><span class="val" id="vDir"></span><svg class="i chev"><use href="#chev"/></svg></button>
+      <button class="row" type="button" data-sheet="ord" id="rOrd"><span class="ico" style="background:var(--grey)"><svg class="i"><use href="#shuffle"/></svg></span><span class="lbl">Reihenfolge</span><span class="val" id="vOrd"></span><svg class="i chev"><use href="#chev"/></svg></button>
+    </div>
+    <div class="group" style="margin-top:14px">
+      <button class="row" type="button" id="btnUndo"><span class="ico" style="background:var(--dark)"><svg class="i"><use href="#undo"/></svg></span><span class="lbl">Letzte Bewertung rückgängig</span><svg class="i chev"><use href="#chev"/></svg></button>
+    </div>
+  </section>
+
+  <section id="vStats" hidden>
+    <div class="group" id="sToday"></div>
+    <div class="h2row"><h2>Letzte 14 Tage</h2></div>
+    <div class="chartbox"><svg id="chart" viewBox="0 0 700 190" role="img" aria-label="Wörter pro Tag"></svg>
+      <div class="legend"><span><i style="background:var(--green)"></i>gewusst</span><span><i style="background:var(--orange)"></i>nicht gewusst</span></div></div>
+    <div class="h2row"><h2>Nach Niveau</h2></div>
+    <div class="group" id="sLevels"></div>
+    <div class="h2row"><h2>Pro Tag</h2></div>
+    <div class="group" id="sDays"></div>
+    <div class="h2row"><h2>Nach Thema</h2></div>
+    <div class="group" id="sTopics"></div>
+  </section>
+</div>
+
+<div class="rate" id="rateBar"><div>
+  <button class="btn no" type="button" data-rate="2"><svg class="i"><use href="#x"/></svg>Kenn ich nicht</button>
+  <button class="btn primary" type="button" data-rate="1"><svg class="i"><use href="#check"/></svg>Kenn ich</button>
+</div></div>
+<div class="tabs"><nav>
+  <a href="#lernen" data-view="lernen"><svg class="i"><use href="#book"/></svg>Lernen</a>
+  <a href="#wiederholen" data-view="wiederholen"><svg class="i"><use href="#refresh"/></svg>Wiederholen<span class="badge" id="badge" hidden></span></a>
+  <a href="#statistik" data-view="statistik"><svg class="i"><use href="#i-chart"/></svg>Statistik</a>
+</nav></div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div><div class="grab"></div><h3 id="shTitle"></h3><div class="group" id="shList"></div></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileImport" accept=".json,.txt,application/json,text/plain" hidden>
+
+<script>
+(function(){
+var RAW = /*__DATA__*/"";
+var TOPICS = {ALL:'Grundwortschatz',HOM:'Haushalt & Wohnen',FOO:'Essen & Trinken',BOD:'Körper & Gesundheit',NAT:'Natur, Tiere & Wetter',TRV:'Reisen & Verkehr',BIZ:'Arbeit & Business',FIN:'Geld & Finanzen',TEC:'Technik & IT',SCI:'Wissenschaft',POL:'Politik, Recht & Militär',SOC:'Gesellschaft & Kultur',SPO:'Sport & Freizeit',EMO:'Gefühle & Charakter',PPL:'Menschen & Beziehungen',TIM:'Zeit, Raum & Mengen',COM:'Kommunikation & Medien',EDU:'Bildung & Sprache',CLO:'Kleidung & Aussehen'};
+var TCOL = {ALL:'grey',HOM:'yellow',FOO:'orange',BOD:'red',NAT:'green',TRV:'blue',BIZ:'dark',FIN:'yellow',TEC:'blue',SCI:'cyan',POL:'dark',SOC:'purple',SPO:'orange',EMO:'pink',PPL:'purple',TIM:'grey',COM:'cyan',EDU:'blue',CLO:'pink'};
+var W = RAW.split('\n').filter(Boolean).map(function(l){var p=l.split('\t');return {en:p[0],de:p[1],t:TOPICS[p[2]]?p[2]:'ALL'};});
+var N = W.length;
+// Niveau by frequency rank; cut-offs follow vocabulary-size research per CEFR level
+var LV = [['A1',0,800,'green'],['A2',800,2000,'cyan'],['B1',2000,3250,'blue'],['B2',3250,5000,'purple'],['C1',5000,8000,'orange'],['C2',8000,N,'red']];
+function lvOf(i){ for (var l=0;l<LV.length;l++) if (i<LV[l][2]) return l; return LV.length-1; }
+var fmt = function(n){return n.toLocaleString('de-DE');};
+var KEY='vt10k-v1', DEF={dir:'ed',band:'test',topic:'',ord:'r'};
+var S = {s:{}, d:{}, cfg:Object.assign({},DEF)};
+try { var x = JSON.parse(localStorage.getItem(KEY)||'null'); if (x && x.s) { S = x; S.cfg = Object.assign({},DEF, x.cfg||{}); } } catch(e) {}
+if (!/^(all|test|[0-5])$/.test(S.cfg.band)) S.cfg.band='test';
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+function dkey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function today(){ return dkey(new Date()); }
+function day(k){ return S.d[k] || (S.d[k]={n:0,k:0,u:0,r:0}); }
+var $ = function(id){return document.getElementById(id);};
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function pct(a,b){ return b? Math.round(a/b*100)+' %' : ''; }
+var tc={}; W.forEach(function(w){tc[w.t]=(tc[w.t]||0)+1;});
+var DIRS={ed:'EN zu DE',de:'DE zu EN',mx:'Gemischt'}, ORDS={r:'Zufällig',f:'Nach Häufigkeit'};
+function bandName(b){ return b==='test'?'Einstufungstest': b==='all'?'Alle Wörter': LV[+b][0]; }
+
+var view='lernen', cur=null, curDir='ed', revealed=false, hist=[], queue=[];
+function newTest(){
+  var ids=[]; LV.forEach(function(l){ var c=[]; for (var i=l[1];i<l[2];i++) if(!S.s[i]) c.push(i);
+    if (c.length<10) for (var j=l[1];j<l[2];j++) if(S.s[j] && c.indexOf(j)<0) c.push(j);
+    for (var k=0;k<10 && c.length;k++) ids.push(c.splice(Math.floor(Math.random()*c.length),1)[0]); });
+  S.test={ids:ids, done:{}}; save();
+}
+function isTest(){ return view==='lernen' && S.cfg.band==='test'; }
+function inFilter(i){ var c=S.cfg; if (c.band!=='all' && c.band!=='test' && lvOf(i)!==+c.band) return false; if (c.topic && W[i].t!==c.topic) return false; return true; }
+function isOpen(i){ if (view==='wiederholen') return S.s[i]===2; if (isTest()) return !S.test.done[i]; return !S.s[i]; }
+function buildQueue(){
+  queue=[];
+  if (isTest()){ if(!S.test) newTest(); queue=S.test.ids.filter(isOpen); }
+  else for (var i=0;i<N;i++){ if (view==='lernen' && !inFilter(i)) continue; if (isOpen(i)) queue.push(i); }
+  if (S.cfg.ord==='r' || view!=='lernen' || isTest()) for (var j=queue.length-1;j>0;j--){ var r=Math.floor(Math.random()*(j+1)); var t=queue[j];queue[j]=queue[r];queue[r]=t; }
+}
+function revCount(){ var c=0; for (var k in S.s) if (S.s[k]===2) c++; return c; }
+function next(){
+  while (queue.length && !isOpen(queue[0])) queue.shift();
+  cur = queue.length ? queue[0] : null; revealed=false;
+  curDir = S.cfg.dir==='mx' ? (Math.random()<.5?'ed':'de') : S.cfg.dir;
+  render();
+}
+function testResult(){ return LV.map(function(l,k){ var n=0,y=0; S.test.ids.forEach(function(i){ if(lvOf(i)!==k) return; var s=S.test.done[i]; if(s){ n++; if(s===1) y++; } }); return {n:n,y:y}; }); }
+function recLevel(res){ for (var k=0;k<res.length;k++) if (res[k].n && res[k].y/res[k].n < .9) return k; return LV.length-1; }
+
+function render(){
+  var rc=revCount(); $('badge').hidden=!rc; $('badge').textContent=rc>999?'999+':rc;
+  document.querySelectorAll('.tabs a').forEach(function(a){ if(a.dataset.view===view) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  var isCard = view!=='statistik', test=isTest();
+  $('vCard').hidden=!isCard; $('vStats').hidden=isCard; $('rateBar').hidden = !(isCard && cur!==null);
+  if (!isCard){ $('title').textContent='Statistik'; renderStats(); return; }
+  $('title').textContent = view==='wiederholen'?'Wiederholen': test?'Einstufungstest':'Lernen';
+  $('sub').textContent = view==='wiederholen' ? fmt(queue.length)+' unbekannte Wörter. Bei "Kenn ich" verlassen sie die Liste'
+    : test ? '10 Zufallswörter je Niveau, '+fmt(queue.length)+' von '+fmt(S.test.ids.length)+' offen'
+    : bandName(S.cfg.band)+(S.cfg.topic?', '+TOPICS[S.cfg.topic]:'')+', '+fmt(queue.length)+' offen';
+  $('vBand').textContent=bandName(S.cfg.band); $('vTopic').textContent=S.cfg.topic?TOPICS[S.cfg.topic]:'Alle'; $('vDir').textContent=DIRS[S.cfg.dir]; $('vOrd').textContent=ORDS[S.cfg.ord];
+  $('rBand').hidden = view==='wiederholen'; $('rTopic').hidden = view==='wiederholen' || test; $('rOrd').hidden = view==='wiederholen' || test;
+  $('btnUndo').style.opacity = hist.length?1:.4;
+  var d=day(today()); $('todayLine').textContent = 'Heute '+fmt(d.n)+' geprüft, '+fmt(d.k)+' gewusst, '+fmt(d.r)+' wiederholt';
+  $('testBox').hidden=true; $('emptyBox').hidden=true; $('card').hidden=true;
+  if (cur===null){
+    if (test){ renderTest(); return; }
+    $('emptyBox').hidden=false;
+    if (view==='lernen'){ $('emptyH').textContent='Alles in dieser Auswahl geprüft'; $('emptyP').textContent='Wähle ein anderes Niveau oder Thema. Unbekannte Wörter findest du unter Wiederholen.'; $('emptyBtn').textContent='Zu Wiederholen'; $('emptyBtn').onclick=function(){go('wiederholen');}; }
+    else { $('emptyH').textContent='Nichts zu wiederholen'; $('emptyP').textContent='Hier landen Wörter, die du mit "Kenn ich nicht" bewertest.'; $('emptyBtn').textContent='Weiter lernen'; $('emptyBtn').onclick=function(){go('lernen');}; }
+    return;
+  }
+  $('card').hidden=false;
+  var w=W[cur], q = curDir==='ed'?w.en:w.de, a = curDir==='ed'?w.de:w.en;
+  $('cLv').textContent = test ? LV[lvOf(cur)][0] : LV[lvOf(cur)][0]+'  #'+fmt(cur+1);
+  $('cTopic').textContent=TOPICS[w.t]; $('cDir').textContent=DIRS[curDir];
+  $('cWord').textContent=q;
+  var an=$('cAns'); if (revealed){ an.textContent=a; an.classList.remove('hint'); } else { an.textContent='Tippen für die Lösung'; an.classList.add('hint'); }
+}
+function ico(col, inner){ return '<span class="ico" style="background:var(--'+col+')">'+inner+'</span>'; }
+function renderTest(){
+  var res=testResult(); $('testBox').hidden=false;
+  $('tTest').innerHTML = res.map(function(r,k){ var off = r.n && r.y/r.n<.9;
+    return '<div class="row static">'+ico(LV[k][3],LV[k][0])+'<span class="lbl">'+r.y+' von '+r.n+' gewusst<div class="bar"><i style="width:'+(r.n?r.y/r.n*100:0)+'%"></i></div></span><span class="val'+(off?' off':'')+'">'+pct(r.y,r.n)+'</span></div>'; }).join('');
+  var k=recLevel(res);
+  $('testRec').textContent = 'Ab '+LV[k][0]+' kennst du weniger als 9 von 10 Wörtern. Dort fangen deine Lücken an, die leichteren Niveaus kannst du überspringen.';
+  $('btnStartRec').textContent='Mit '+LV[k][0]+' starten';
+  $('btnStartRec').onclick=function(){ S.cfg.band=String(k); S.cfg.ord='r'; save(); buildQueue(); next(); window.scrollTo(0,0); };
+}
+function renderStats(){
+  var d=day(today()), est=0, totC=0, totK=0, untested=0, lv='';
+  LV.forEach(function(l){ var c=0,k=0; for (var i=l[1];i<l[2];i++){ var s=S.s[i]; if(s){ c++; if(s===1) k++; } }
+    var e = c? Math.round(k/c*(l[2]-l[1])) : null; if (e!==null) est+=e; else untested++; totC+=c; totK+=k;
+    lv+='<div class="row static">'+ico(l[3],l[0])+'<span class="lbl">Rang '+fmt(l[1]+1)+' bis '+fmt(l[2])+'<small>'+fmt(c)+' geprüft'+(e!==null?', ca. '+fmt(e)+' von '+fmt(l[2]-l[1])+' bekannt':'')+'</small><div class="bar"><i style="width:'+(c?k/c*100:0)+'%"></i></div></span><span class="val">'+pct(k,c)+'</span></div>'; });
+  var lvl = est<800?'unter A2':est<2000?'A2':est<3250?'B1':est<5000?'B2':est<8000?'C1':'C2';
+  $('sub').textContent = !totC ? 'Starte mit dem Einstufungstest, dann bekommst du hier eine Hochrechnung' : 'Hochrechnung ca. '+fmt(est)+' Wörter, das entspricht '+lvl+(untested?'. '+untested+' Niveaus noch ohne Bewertung':'');
+  $('sLevels').innerHTML=lv;
+  $('sToday').innerHTML = [['cal','blue','Heute geprüft',d.n],['check','green','Gewusst',d.k],['x','orange','Nicht gewusst',d.u],['refresh','purple','Wiederholt',d.r]].map(function(r){
+    return '<div class="row static">'+ico(r[1],'<svg class="i"><use href="#'+r[0]+'"/></svg>')+'<span class="lbl">'+r[2]+'</span><span class="val">'+fmt(r[3])+'</span></div>'; }).join('');
+  var keys=Object.keys(S.d).filter(function(k){var x=S.d[k];return x.n||x.r;}).sort().reverse().slice(0,30);
+  $('sDays').innerHTML = keys.map(function(k){ var x=S.d[k], p=k.split('-'), wd=new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('de-DE',{weekday:'short'});
+    return '<div class="row static noicon"><span class="lbl">'+wd+', '+p[2]+'.'+p[1]+'.'+p[0]+'<small>'+fmt(x.k)+' gewusst, '+fmt(x.u)+' nicht gewusst, '+fmt(x.r)+' wiederholt</small></span><span class="val">'+fmt(x.n)+'</span></div>'; }).join('')
+    || '<div class="row static noicon"><span class="lbl" style="color:var(--fg2)">Sobald du Wörter bewertest, erscheint hier jeder Tag</span></div>';
+  var days=[]; for (var i=13;i>=0;i--){ var dt=new Date(); dt.setDate(dt.getDate()-i); var k=dkey(dt); days.push([k,S.d[k]||{n:0,k:0,u:0}]); }
+  var max=Math.max(10,Math.max.apply(null,days.map(function(x){return x[1].n;}))); var step=Math.pow(10,Math.floor(Math.log10(max))); var top=Math.ceil(max/step)*step;
+  var H=150, X0=44, bw=(700-X0)/14, svg='';
+  [0,.5,1].forEach(function(f){ var y=10+H-H*f; svg+='<line x1="'+X0+'" x2="700" y1="'+y+'" y2="'+y+'"/><text x="'+(X0-8)+'" y="'+(y+4)+'" text-anchor="end">'+fmt(Math.round(top*f))+'</text>'; });
+  days.forEach(function(x,j){ var dd=x[1], xk=X0+j*bw+bw*.18, w=bw*.64, hk=H*dd.k/top, hu=H*dd.u/top;
+    if (hk) svg+='<rect x="'+xk+'" y="'+(10+H-hk)+'" width="'+w+'" height="'+hk+'" rx="3" style="fill:var(--green)"/>';
+    if (hu) svg+='<rect x="'+xk+'" y="'+(10+H-hk-hu)+'" width="'+w+'" height="'+hu+'" rx="3" style="fill:var(--orange)"/>';
+    var p=x[0].split('-'); if (j%2===1) svg+='<text x="'+(xk+w/2)+'" y="184" text-anchor="middle">'+(+p[2])+'.'+(+p[1])+'.</text>'; });
+  $('chart').innerHTML=svg;
+  var tt=''; Object.keys(TOPICS).forEach(function(t){ if(!tc[t]) return; var c=0,k=0,o=0; W.forEach(function(w,i){ if(w.t!==t) return; var s=S.s[i]; if(s){c++; if(s===1)k++;} if(s===2) o++; });
+    tt+='<button class="row" type="button" data-topic="'+t+'">'+ico(TCOL[t],'<svg class="i"><use href="#tag"/></svg>')+'<span class="lbl">'+TOPICS[t]+'<small>'+fmt(c)+' von '+fmt(tc[t])+' geprüft, '+fmt(o)+' offen</small></span><span class="val">'+pct(k,c)+'</span><svg class="i chev"><use href="#chev"/></svg></button>'; });
+  $('sTopics').innerHTML=tt;
+}
+function rate(v){
+  if (cur===null || view==='statistik') return;
+  var d=day(today()), prev=S.s[cur], test=isTest();
+  hist.push({i:cur,prev:prev,view:view,test:test,day:today(),v:v,counted:!prev}); if (hist.length>50) hist.shift();
+  if (view==='lernen'){ if (test) S.test.done[cur]=v; if (!prev){ d.n++; if(v===1) d.k++; else d.u++; S.s[cur]=v; } else if (test && v===2) S.s[cur]=2; }
+  else { d.r++; if (v===1) S.s[cur]=3; else queue.push(cur); }
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch(e){}
+  save(); queue.shift(); next();
+}
+function undo(){
+  var h=hist.pop(); if(!h) return; var d=day(h.day);
+  if (h.view==='lernen'){ if (h.counted){ d.n--; if(h.v===1) d.k--; else d.u--; } if (h.test && S.test) delete S.test.done[h.i]; } else d.r--;
+  if (h.prev===undefined) delete S.s[h.i]; else S.s[h.i]=h.prev;
+  save(); if (view!==h.view){ view=h.view; setHash(view); }
+  buildQueue(); var p=queue.indexOf(h.i); if(p>=0) queue.splice(p,1); queue.unshift(h.i);
+  cur=h.i; revealed=false; render(); window.scrollTo(0,0);
+}
+function reveal(){ if(cur===null) return; revealed=!revealed; render(); }
+function setHash(v){ try { window.history.replaceState(null,'','#'+v); } catch(e){} }
+function go(v){ view=v; setHash(v); buildQueue(); next(); window.scrollTo(0,0); }
+var tt0;
+function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(tt0); tt0=setTimeout(function(){t.classList.remove('on');},2600); }
+
+// sheets
+function openSheet(title, items){
+  $('shTitle').textContent=title;
+  $('shList').innerHTML = items.map(function(it,n){ return '<button class="row'+(it.icon?'':' noicon')+'" type="button" data-n="'+n+'">'+(it.icon||'')+'<span class="lbl"'+(it.danger?' style="color:var(--red)"':'')+'>'+esc(it.label)+(it.small?'<small>'+esc(it.small)+'</small>':'')+'</span>'+(it.on?'<svg class="i chk"><use href="#check"/></svg>':'')+'</button>'; }).join('');
+  $('shList').onclick=function(e){ var b=e.target.closest('[data-n]'); if(!b) return; var it=items[+b.dataset.n]; closeSheet(); setTimeout(function(){ it.act(); },120); };
+  $('scrim').classList.add('on'); $('sheet').classList.add('on');
+}
+function closeSheet(){ $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); }
+$('scrim').addEventListener('click', closeSheet);
+function setCfg(k,v){ S.cfg[k]=v; save(); if (view==='statistik') view='lernen'; buildQueue(); next(); window.scrollTo(0,0); }
+var SHEETS = {
+  band: function(){ var it=[{label:'Einstufungstest',small:'60 Wörter, 10 je Niveau',icon:ico('dark','<svg class="i"><use href="#target"/></svg>'),on:S.cfg.band==='test',act:function(){setCfg('band','test');}}];
+    LV.forEach(function(l,k){ it.push({label:l[0],small:'Rang '+fmt(l[1]+1)+' bis '+fmt(l[2]),icon:ico(l[3],l[0]),on:S.cfg.band===String(k),act:function(){setCfg('band',String(k));}}); });
+    it.push({label:'Alle Wörter',small:fmt(N)+' Wörter',icon:ico('grey','<svg class="i"><use href="#book"/></svg>'),on:S.cfg.band==='all',act:function(){setCfg('band','all');}});
+    openSheet('Niveau', it); },
+  topic: function(){ var it=[{label:'Alle Themen',on:!S.cfg.topic,icon:ico('grey','<svg class="i"><use href="#tag"/></svg>'),act:function(){setCfg('topic','');}}];
+    Object.keys(TOPICS).forEach(function(t){ if(tc[t]) it.push({label:TOPICS[t],small:fmt(tc[t])+' Wörter',icon:ico(TCOL[t],'<svg class="i"><use href="#tag"/></svg>'),on:S.cfg.topic===t,act:function(){setCfg('topic',t);}}); });
+    openSheet('Thema', it); },
+  dir: function(){ openSheet('Richtung', Object.keys(DIRS).map(function(k){ return {label:DIRS[k],on:S.cfg.dir===k,act:function(){setCfg('dir',k);}}; })); },
+  ord: function(){ openSheet('Reihenfolge', Object.keys(ORDS).map(function(k){ return {label:ORDS[k],small:k==='f'?'Häufigste Wörter zuerst':'Zufällig innerhalb der Auswahl',on:S.cfg.ord===k,act:function(){setCfg('ord',k);}}; })); }
+};
+$('btnMenu').addEventListener('click', function(){ openSheet('Mehr', [
+  {label:'Fortschritt kopieren',small:'Backup in die Zwischenablage, z.B. in Notizen sichern',icon:ico('blue','<svg class="i"><use href="#copy"/></svg>'),act:function(){ try { navigator.clipboard.writeText(JSON.stringify(S)).then(function(){toast('Fortschritt kopiert');},function(){toast('Kopieren nicht möglich');}); } catch(e){ toast('Kopieren nicht möglich'); } }},
+  {label:'Fortschritt importieren',small:'Backup-Datei wählen',icon:ico('green','<svg class="i"><use href="#upload"/></svg>'),act:function(){ $('fileImport').click(); }},
+  {label:'Fortschritt zurücksetzen',small:'Löscht alle Bewertungen auf diesem Gerät',danger:true,icon:ico('red','<svg class="i"><use href="#trash"/></svg>'),act:function(){ openSheet('Wirklich zurücksetzen?', [
+     {label:'Ja, alles löschen',danger:true,act:function(){ S={s:{},d:{},cfg:Object.assign({},DEF)}; hist=[]; save(); go('lernen'); toast('Fortschritt zurückgesetzt'); }},
+     {label:'Abbrechen',act:function(){}} ]); }}
+]); });
+$('btnTest').addEventListener('click', function(){ if (S.cfg.band==='test' && view==='lernen') { newTest(); } setCfg('band','test'); });
+$('btnRetest').addEventListener('click', function(){ newTest(); buildQueue(); next(); window.scrollTo(0,0); });
+$('fileImport').addEventListener('change', function(){ var f=this.files[0]; if(!f) return; f.text().then(function(t){ try{ var x=JSON.parse(t); if(!x.s) throw 0; S=x; S.cfg=Object.assign({},DEF,x.cfg||{}); save(); go('lernen'); toast('Fortschritt importiert'); }catch(e){ toast('Datei nicht erkannt'); } }); this.value=''; });
+document.addEventListener('click', function(e){
+  var r=e.target.closest('[data-rate]'); if(r){ rate(+r.dataset.rate); return; }
+  var v=e.target.closest('[data-view]'); if(v){ e.preventDefault(); go(v.dataset.view); return; }
+  var s=e.target.closest('[data-sheet]'); if(s){ SHEETS[s.dataset.sheet](); return; }
+  var t=e.target.closest('[data-topic]'); if(t){ S.cfg.band = S.cfg.band==='test'?'all':S.cfg.band; setCfg('topic', t.dataset.topic); }
+});
+$('card').addEventListener('click', reveal);
+$('btnUndo').addEventListener('click', undo);
+document.addEventListener('keydown', function(e){
+  if (e.key==='Escape') return closeSheet();
+  if (e.key==='ArrowRight'){ rate(1); e.preventDefault(); } else if (e.key==='ArrowLeft'){ rate(2); e.preventDefault(); }
+  else if (e.key===' ' || e.key==='ArrowDown' || e.key==='Enter'){ reveal(); e.preventDefault(); }
+  else if (e.key==='Backspace' || (e.key==='z' && (e.metaKey||e.ctrlKey))){ undo(); e.preventDefault(); }
+});
+window.addEventListener('hashchange', function(){ var v=location.hash.slice(1); if(['lernen','wiederholen','statistik'].indexOf(v)>=0 && v!==view) go(v); });
+var h0=(location.hash||'').slice(1); view = ['lernen','wiederholen','statistik'].indexOf(h0)>=0 ? h0 : 'lernen';
+buildQueue(); next();
+if ('serviceWorker' in navigator && location.protocol==='https:' && /github\.io$/.test(location.hostname)) { try { navigator.serviceWorker.register('sw.js').catch(function(){}); } catch(e){} }
+})();
+</script>
+</body>
+</html>
