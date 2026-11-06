@@ -251,6 +251,12 @@ function buildQueue(){
   if (isTest()){ if(!S.test) newTest(); queue=S.test.ids.filter(isOpen); }
   else for (var i=0;i<N;i++){ if (view==='lernen' && !inFilter(i)) continue; if (isOpen(i)) queue.push(i); }
   if (S.cfg.ord==='r' || view!=='lernen' || isTest()) for (var j=queue.length-1;j>0;j--){ var r=Math.floor(Math.random()*(j+1)); var t=queue[j];queue[j]=queue[r];queue[r]=t; }
+  else if (S.cfg.lvs.length!==1) {
+    // Frequency order with several levels: keep the order inside each level, pick the next level at random weighted by what is left
+    var by=LV.map(function(){return [];}); queue.forEach(function(i){ by[lvOf(i)].push(i); }); var mix=[], left=queue.length;
+    while (left){ var r2=Math.random()*left, k2=0; while (r2>=by[k2].length){ r2-=by[k2].length; k2++; } mix.push(by[k2].shift()); left--; }
+    queue=mix;
+  }
 }
 function revCount(){ var c=0; for (var k in S.s) if (S.s[k]===2) c++; return c; }
 function next(){
@@ -407,7 +413,7 @@ var SHEETS = {
   topic: function(){ openMulti('Thema', S.cfg.tps, Object.keys(TOPICS).filter(function(t){return tc[t];}).map(function(t){ return {k:t,label:TOPICS[t],small:fmt(tc[t])+' Wörter',icon:ico(TCOL[t],'<svg class="i"><use href="#tag"/></svg>')}; }), null,
       function(sel){ S.cfg.tps=sel; setCfg('band','learn'); }); },
   dir: function(){ openSheet('Richtung', Object.keys(DIRS).map(function(k){ return {label:DIRS[k],on:S.cfg.dir===k,act:function(){setCfg('dir',k);}}; })); },
-  ord: function(){ openSheet('Reihenfolge', Object.keys(ORDS).map(function(k){ return {label:ORDS[k],small:k==='f'?'Häufigste Wörter zuerst':'Zufällig innerhalb der Auswahl',on:S.cfg.ord===k,act:function(){setCfg('ord',k);}}; })); }
+  ord: function(){ openSheet('Reihenfolge', Object.keys(ORDS).map(function(k){ return {label:ORDS[k],small:k==='f'?'Häufigste Wörter je Niveau zuerst, Niveaus gemischt':'Zufällig innerhalb der Auswahl',on:S.cfg.ord===k,act:function(){setCfg('ord',k);}}; })); }
 };
 $('btnMenu').addEventListener('click', function(){ openSheet('Mehr', [
   {label:'Backup sichern',small:(S.lastBackup?'Letztes Backup '+(daysSince(S.lastBackup)===0?'heute':'vor '+daysSince(S.lastBackup)+' Tagen'):'Noch kein Backup')+', als Datei in Dateien oder iCloud',now:true,icon:ico('blue','<svg class="i"><use href="#save"/></svg>'),act:backup},

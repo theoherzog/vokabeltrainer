@@ -1,5 +1,5 @@
-// Vokabeltrainer service worker, build 1.7 vom 06.11.2026 15:03
-const C='vt-6d6ee01e';
+// Vokabeltrainer service worker, build 1.8 vom 06.11.2026 15:18
+const C='vt-419e8612';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','./favicon-32.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
