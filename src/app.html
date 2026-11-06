@@ -204,9 +204,10 @@ var N = W.length;
 var LV = [['A1',0,800,'green'],['A2',800,2000,'cyan'],['B1',2000,3250,'blue'],['B2',3250,5000,'purple'],['C1',5000,8000,'orange'],['C2',8000,N,'red']];
 function lvOf(i){ for (var l=0;l<LV.length;l++) if (i<LV[l][2]) return l; return LV.length-1; }
 var fmt = function(n){return n.toLocaleString('de-DE');};
-var KEY='vt10k-v1', DEF={dir:'ed',band:'test',topic:'',ord:'r'};
+var KEY='vt10k-v1', DEF={dir:'ed',band:'test',lvs:[],tps:[],ord:'r'};
 var S = {s:{}, d:{}, cfg:Object.assign({},DEF)};
-function adopt(x){ if (x && x.s) { S = x; S.cfg = Object.assign({},DEF, x.cfg||{}); } if (!/^(all|test|[0-5])$/.test(S.cfg.band)) S.cfg.band='test'; }
+function adopt(x){ if (x && x.s) { S = x; S.cfg = Object.assign({},DEF, x.cfg||{}); } var c=S.cfg; if (/^[0-5]$/.test(c.band)) { c.lvs=[+c.band]; c.band='learn'; } else if (c.band==='all') { c.lvs=[]; c.band='learn'; } else if (c.band!=='learn') c.band='test';
+  if (c.topic) { c.tps=[c.topic]; } delete c.topic; if (!Array.isArray(c.lvs)) c.lvs=[]; if (!Array.isArray(c.tps)) c.tps=[]; c.tps=c.tps.filter(function(t){return TOPICS[t];}); }
 try { adopt(JSON.parse(localStorage.getItem(KEY)||'null')); } catch(e) {}
 adopt(null);
 // IndexedDB is the main store, localStorage a synchronous mirror for a fast start
@@ -226,7 +227,8 @@ function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&am
 function pct(a,b){ return b? Math.round(a/b*100)+' %' : ''; }
 var tc={}; W.forEach(function(w){tc[w.t]=(tc[w.t]||0)+1;});
 var DIRS={ed:'EN zu DE',de:'DE zu EN',mx:'Gemischt'}, ORDS={r:'Zufällig',f:'Nach Häufigkeit'};
-function bandName(b){ return b==='test'?'Einstufungstest': b==='all'?'Alle Wörter': LV[+b][0]; }
+function lvName(){ var l=S.cfg.lvs.slice().sort(); return !l.length||l.length===LV.length ? 'Alle Niveaus' : l.map(function(k){return LV[k][0];}).join(', '); }
+function tpName(short){ var t=S.cfg.tps; return !t.length ? (short?'Alle':'alle Themen') : t.length===1 ? TOPICS[t[0]] : t.length+' Themen'; }
 
 var view='lernen', cur=null, curDir='ed', revealed=false, hist=[], queue=[];
 function newTest(){
@@ -236,7 +238,7 @@ function newTest(){
   S.test={ids:ids, done:{}}; save();
 }
 function isTest(){ return view==='lernen' && S.cfg.band==='test'; }
-function inFilter(i){ var c=S.cfg; if (c.band!=='all' && c.band!=='test' && lvOf(i)!==+c.band) return false; if (c.topic && W[i].t!==c.topic) return false; return true; }
+function inFilter(i){ var c=S.cfg; if (c.lvs.length && c.lvs.indexOf(lvOf(i))<0) return false; if (c.tps.length && c.tps.indexOf(W[i].t)<0) return false; return true; }
 function isOpen(i){ if (view==='wiederholen') return S.s[i]===2; if (isTest()) return !S.test.done[i]; return !S.s[i]; }
 function buildQueue(){
   queue=[];
@@ -263,8 +265,8 @@ function render(){
   $('title').textContent = view==='wiederholen'?'Wiederholen': test?'Einstufungstest':'Lernen';
   $('sub').textContent = view==='wiederholen' ? fmt(queue.length)+' unbekannte Wörter. Bei "Kenn ich" verlassen sie die Liste'
     : test ? '10 Zufallswörter je Niveau, '+fmt(queue.length)+' von '+fmt(S.test.ids.length)+' offen'
-    : bandName(S.cfg.band)+(S.cfg.topic?', '+TOPICS[S.cfg.topic]:'')+', '+fmt(queue.length)+' offen';
-  $('vBand').textContent=bandName(S.cfg.band); $('vTopic').textContent=S.cfg.topic?TOPICS[S.cfg.topic]:'Alle'; $('vDir').textContent=DIRS[S.cfg.dir]; $('vOrd').textContent=ORDS[S.cfg.ord];
+    : lvName()+', '+tpName()+', '+fmt(queue.length)+' offen';
+  $('vBand').textContent=test?'Einstufungstest':(S.cfg.lvs.length&&S.cfg.lvs.length<LV.length?lvName():'Alle'); $('vTopic').textContent=tpName(true); $('vDir').textContent=DIRS[S.cfg.dir]; $('vOrd').textContent=ORDS[S.cfg.ord];
   $('rBand').hidden = view==='wiederholen'; $('rTopic').hidden = view==='wiederholen' || test; $('rOrd').hidden = view==='wiederholen' || test;
   $('btnUndo').style.opacity = hist.length?1:.4;
   var d=day(today()); $('todayLine').textContent = 'Heute '+fmt(d.n)+' geprüft, '+fmt(d.k)+' gewusst, '+fmt(d.r)+' wiederholt';
@@ -292,7 +294,7 @@ function renderTest(){
   var k=recLevel(res);
   $('testRec').textContent = 'Ab '+LV[k][0]+' kennst du weniger als 9 von 10 Wörtern. Dort fangen deine Lücken an, die leichteren Niveaus kannst du überspringen.';
   $('btnStartRec').textContent='Mit '+LV[k][0]+' starten';
-  $('btnStartRec').onclick=function(){ S.cfg.band=String(k); S.cfg.ord='r'; save(); buildQueue(); next(); window.scrollTo(0,0); };
+  $('btnStartRec').onclick=function(){ S.cfg.band='learn'; S.cfg.lvs=[k]; S.cfg.ord='r'; save(); buildQueue(); next(); window.scrollTo(0,0); };
 }
 function renderStats(){
   var d=day(today()), est=0, totC=0, totK=0, untested=0, lv='';
@@ -358,22 +360,43 @@ function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); cle
 
 // sheets
 function openSheet(title, items){
-  $('shTitle').textContent=title;
+  onClose=null; $('shTitle').textContent=title;
   $('shList').innerHTML = items.map(function(it,n){ return '<button class="row'+(it.icon?'':' noicon')+'" type="button" data-n="'+n+'">'+(it.icon||'')+'<span class="lbl"'+(it.danger?' style="color:var(--red)"':'')+'>'+esc(it.label)+(it.small?'<small>'+esc(it.small)+'</small>':'')+'</span>'+(it.on?'<svg class="i chk"><use href="#check"/></svg>':'')+'</button>'; }).join('');
   $('shList').onclick=function(e){ var b=e.target.closest('[data-n]'); if(!b) return; var it=items[+b.dataset.n]; closeSheet(); if (it.now) it.act(); else setTimeout(function(){ it.act(); },120); };
   $('scrim').classList.add('on'); $('sheet').classList.add('on');
 }
-function closeSheet(){ $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); }
+var onClose=null;
+function closeSheet(){ $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); var f=onClose; onClose=null; if (f) f(); }
 $('scrim').addEventListener('click', closeSheet);
+// Multi-select: rows toggle, "Alle" clears, the sheet applies on Fertig or on closing
+function openMulti(title, sel, opts, top, apply){
+  var cur=sel.slice(), touched=false;
+  function draw(){
+    var html=(top||[]).map(function(it,n){ return '<button class="row" type="button" data-top="'+n+'">'+it.icon+'<span class="lbl">'+esc(it.label)+'<small>'+esc(it.small)+'</small></span>'+(it.on?'<svg class="i chk"><use href="#check"/></svg>':'')+'</button>'; }).join('');
+    html+='<button class="row" type="button" data-all="1">'+ico('grey','<svg class="i"><use href="#check"/></svg>')+'<span class="lbl">Alle</span>'+(!cur.length?'<svg class="i chk"><use href="#check"/></svg>':'')+'</button>';
+    html+=opts.map(function(o){ var on=cur.indexOf(o.k)>=0; return '<button class="row" type="button" data-k="'+o.k+'">'+o.icon+'<span class="lbl">'+esc(o.label)+(o.small?'<small>'+esc(o.small)+'</small>':'')+'</span>'+(on?'<svg class="i chk"><use href="#check"/></svg>':'')+'</button>'; }).join('');
+    $('shList').innerHTML=html;
+  }
+  $('shTitle').innerHTML=esc(title)+'<button type="button" id="shDone" style="float:right;color:var(--blue);font:600 17px var(--font)">Fertig</button>';
+  draw();
+  $('shList').onclick=function(e){
+    var t=e.target.closest('[data-top]'); if (t){ onClose=null; closeSheet(); top[+t.dataset.top].act(); return; }
+    touched=true; if (e.target.closest('[data-all]')) cur=[];
+    var b=e.target.closest('[data-k]'); if (b){ var k=opts.filter(function(o){return String(o.k)===b.dataset.k;})[0].k, p=cur.indexOf(k); if (p>=0) cur.splice(p,1); else cur.push(k); if (cur.length===opts.length) cur=[]; }
+    draw();
+  };
+  onClose=function(){ if (touched) apply(cur); };
+  $('shDone').onclick=closeSheet;
+  $('scrim').classList.add('on'); $('sheet').classList.add('on');
+}
 function setCfg(k,v){ S.cfg[k]=v; save(); if (view==='statistik') view='lernen'; buildQueue(); next(); window.scrollTo(0,0); }
 var SHEETS = {
-  band: function(){ var it=[{label:'Einstufungstest',small:'60 Wörter, 10 je Niveau',icon:ico('dark','<svg class="i"><use href="#target"/></svg>'),on:S.cfg.band==='test',act:function(){setCfg('band','test');}}];
-    LV.forEach(function(l,k){ it.push({label:l[0],small:'Rang '+fmt(l[1]+1)+' bis '+fmt(l[2]),icon:ico(l[3],l[0]),on:S.cfg.band===String(k),act:function(){setCfg('band',String(k));}}); });
-    it.push({label:'Alle Wörter',small:fmt(N)+' Wörter',icon:ico('grey','<svg class="i"><use href="#book"/></svg>'),on:S.cfg.band==='all',act:function(){setCfg('band','all');}});
-    openSheet('Niveau', it); },
-  topic: function(){ var it=[{label:'Alle Themen',on:!S.cfg.topic,icon:ico('grey','<svg class="i"><use href="#tag"/></svg>'),act:function(){setCfg('topic','');}}];
-    Object.keys(TOPICS).forEach(function(t){ if(tc[t]) it.push({label:TOPICS[t],small:fmt(tc[t])+' Wörter',icon:ico(TCOL[t],'<svg class="i"><use href="#tag"/></svg>'),on:S.cfg.topic===t,act:function(){setCfg('topic',t);}}); });
-    openSheet('Thema', it); },
+  band: function(){ var test=S.cfg.band==='test';
+    openMulti('Niveau', test?[]:S.cfg.lvs, LV.map(function(l,k){ return {k:k,label:l[0],small:'Rang '+fmt(l[1]+1)+' bis '+fmt(l[2]),icon:ico(l[3],l[0])}; }),
+      [{label:'Einstufungstest',small:'60 Wörter, 10 je Niveau',icon:ico('dark','<svg class="i"><use href="#target"/></svg>'),on:test,act:function(){ setCfg('band','test'); }}],
+      function(sel){ S.cfg.lvs=sel; setCfg('band','learn'); }); },
+  topic: function(){ openMulti('Thema', S.cfg.tps, Object.keys(TOPICS).filter(function(t){return tc[t];}).map(function(t){ return {k:t,label:TOPICS[t],small:fmt(tc[t])+' Wörter',icon:ico(TCOL[t],'<svg class="i"><use href="#tag"/></svg>')}; }), null,
+      function(sel){ S.cfg.tps=sel; setCfg('band','learn'); }); },
   dir: function(){ openSheet('Richtung', Object.keys(DIRS).map(function(k){ return {label:DIRS[k],on:S.cfg.dir===k,act:function(){setCfg('dir',k);}}; })); },
   ord: function(){ openSheet('Reihenfolge', Object.keys(ORDS).map(function(k){ return {label:ORDS[k],small:k==='f'?'Häufigste Wörter zuerst':'Zufällig innerhalb der Auswahl',on:S.cfg.ord===k,act:function(){setCfg('ord',k);}}; })); }
 };
@@ -394,7 +417,7 @@ document.addEventListener('click', function(e){
   var r=e.target.closest('[data-rate]'); if(r){ rate(+r.dataset.rate); return; }
   var v=e.target.closest('[data-view]'); if(v){ e.preventDefault(); go(v.dataset.view); return; }
   var s=e.target.closest('[data-sheet]'); if(s){ SHEETS[s.dataset.sheet](); return; }
-  var t=e.target.closest('[data-topic]'); if(t){ S.cfg.band = S.cfg.band==='test'?'all':S.cfg.band; setCfg('topic', t.dataset.topic); }
+  var t=e.target.closest('[data-topic]'); if(t){ if (S.cfg.band==='test') S.cfg.lvs=[]; S.cfg.tps=[t.dataset.topic]; setCfg('band','learn'); }
 });
 $('card').addEventListener('click', reveal);
 $('btnUndo').addEventListener('click', undo);
