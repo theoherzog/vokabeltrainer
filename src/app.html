@@ -59,6 +59,8 @@ h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
 .chip { font: 600 13px var(--font); padding: 4px 10px; border-radius: 12px; background: var(--btn); color: var(--fg2); }
 .chip.lv { background: var(--blue-bg); color: var(--blue); }
 .word { font: 700 38px/1.15 var(--font); letter-spacing: -.02em; word-break: break-word; }
+.ex { font-size: 16px; line-height: 1.4; color: var(--fg2); font-style: italic; max-width: 460px; margin-top: -4px; }
+.ex b { font-style: normal; color: var(--fg); font-weight: 600; }
 .ans { font-size: 22px; color: var(--fg2); min-height: 30px; }
 .ans.hint { font-size: 15px; color: var(--fg3); }
 .empty { background: var(--card); border-radius: 22px; padding: 26px 22px; text-align: center; }
@@ -141,6 +143,7 @@ h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
     <div class="card" id="card" role="button" tabindex="0" aria-label="Lösung zeigen">
       <div class="chips"><span class="chip lv" id="cLv"></span><span class="chip" id="cTopic"></span><span class="chip" id="cDir"></span></div>
       <div class="word" id="cWord"></div>
+      <div class="ex" id="cEx" hidden></div>
       <div class="ans hint" id="cAns"></div>
     </div>
     <div class="empty" id="emptyBox" hidden><b id="emptyH"></b><p id="emptyP"></p><button class="btn primary" type="button" id="emptyBtn"></button></div>
@@ -198,7 +201,7 @@ h2 { font: 700 24px/1.2 var(--font); letter-spacing: -.01em; margin: 0; }
 var RAW = /*__DATA__*/"";
 var TOPICS = {ALL:'Grundwortschatz',HOM:'Haushalt & Wohnen',FOO:'Essen & Trinken',BOD:'Körper & Gesundheit',NAT:'Natur, Tiere & Wetter',TRV:'Reisen & Verkehr',BIZ:'Arbeit & Business',FIN:'Geld & Finanzen',TEC:'Technik & IT',SCI:'Wissenschaft',POL:'Politik, Recht & Militär',SOC:'Gesellschaft & Kultur',SPO:'Sport & Freizeit',EMO:'Gefühle & Charakter',PPL:'Menschen & Beziehungen',TIM:'Zeit, Raum & Mengen',COM:'Kommunikation & Medien',EDU:'Bildung & Sprache',CLO:'Kleidung & Aussehen'};
 var TCOL = {ALL:'grey',HOM:'yellow',FOO:'orange',BOD:'red',NAT:'green',TRV:'blue',BIZ:'dark',FIN:'yellow',TEC:'blue',SCI:'cyan',POL:'dark',SOC:'purple',SPO:'orange',EMO:'pink',PPL:'purple',TIM:'grey',COM:'cyan',EDU:'blue',CLO:'pink'};
-var W = RAW.split('\n').filter(Boolean).map(function(l){var p=l.split('\t');return {en:p[0],de:p[1],t:TOPICS[p[2]]?p[2]:'ALL'};});
+var W = RAW.split('\n').filter(Boolean).map(function(l){var p=l.split('\t');return {en:p[0],de:p[1],t:TOPICS[p[2]]?p[2]:'ALL',ex:p[3]||''};});
 var N = W.length;
 // Niveau by frequency rank; cut-offs follow vocabulary-size research per CEFR level
 var LV = [['A1',0,800,'green'],['A2',800,2000,'cyan'],['B1',2000,3250,'blue'],['B2',3250,5000,'purple'],['C1',5000,8000,'orange'],['C2',8000,N,'red']];
@@ -284,6 +287,9 @@ function render(){
   $('cLv').textContent = test ? LV[lvOf(cur)][0] : LV[lvOf(cur)][0]+'  #'+fmt(cur+1);
   $('cTopic').textContent=TOPICS[w.t]; $('cDir').textContent=DIRS[curDir];
   $('cWord').textContent=q;
+  // Example sentence: right away for EN to DE, only with the solution for DE to EN, it contains the English word
+  var ex=$('cEx'); if (w.ex && (curDir==='ed' || revealed)) { ex.innerHTML=esc(w.ex).replace(/\*([^*]+)\*/g,'<b>$1</b>'); ex.hidden=false; } else ex.hidden=true;
+  ex.style.order = curDir==='de' ? '2' : ''; $('cAns').style.order = curDir==='de' ? '1' : '';
   var an=$('cAns'); if (revealed){ an.textContent=a; an.classList.remove('hint'); } else { an.textContent='Tippen für die Lösung'; an.classList.add('hint'); }
 }
 function ico(col, inner){ return '<span class="ico" style="background:var(--'+col+')">'+inner+'</span>'; }
