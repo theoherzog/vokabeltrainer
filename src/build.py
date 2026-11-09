@@ -2,7 +2,7 @@ import json, pathlib, shutil
 D=pathlib.Path('/home/claude/vocab'); P=D/'build'/'pages'
 import datetime
 vf=D/'build'/'build_no.txt'; no=int(vf.read_text()) + 1 if vf.exists() else 7; vf.write_text(str(no))
-now=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5)))
+from zoneinfo import ZoneInfo; now=datetime.datetime.now(ZoneInfo('Europe/Berlin'))
 VER='1.%d vom %s'%(no, now.strftime('%d.%m.%Y %H:%M'))
 app=(D/'app.html').read_text().replace('/*__VER__*/"dev"', json.dumps(VER)).replace('/*__DATA__*/""', json.dumps(((D/'data_full.tsv') if (D/'data_full.tsv').exists() else (D/'data.tsv')).read_text(), ensure_ascii=False))
 (D/'build'/'artifact.html').write_text(app.replace('<!--PWA-->\n',''))
